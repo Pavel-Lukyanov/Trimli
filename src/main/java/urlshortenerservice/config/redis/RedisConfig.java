@@ -25,7 +25,7 @@ import java.util.Map;
 public class RedisConfig {
     @Valid
     private final RedisProperties redisProperties;
-    private final Map<ChannelTopic, MessageListenerAdapter> containersAdapter = new HashMap<>();
+    private final ObjectMapper objectMapper;
 
     @Bean
     public RedisConnectionFactory connectionFactory() {
@@ -42,9 +42,8 @@ public class RedisConfig {
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        GenericJackson2JsonRedisSerializer jacksonSerializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+        GenericJackson2JsonRedisSerializer jacksonSerializer =
+                new GenericJackson2JsonRedisSerializer(objectMapper);
 
         redisTemplate.setConnectionFactory(connectionFactory);
         redisTemplate.setKeySerializer(new StringRedisSerializer());
