@@ -8,7 +8,6 @@ import urlshortenerservice.model.Url;
 import urlshortenerservice.repository.UrlCacheRepository;
 import urlshortenerservice.repository.UrlRepository;
 import urlshortenerservice.service.analytic.AnalyticService;
-import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -71,46 +70,41 @@ class UrlServiceImplTest {
     }
 
     @Test
-    void getOriginalUrl_shouldReturnUrlFromCacheIfPresent() {
+    void resolve_shouldReturnUrlFromCacheIfPresent() {
         String hash = "abc123";
         Url cachedUrl = new Url();
-        HttpServletRequest request = mock(HttpServletRequest.class);
 
         when(urlCacheRepository.get(hash)).thenReturn(cachedUrl);
 
-        Url result = urlService.getOriginalUrl(hash, request);
+        Url result = urlService.resolve(hash);
 
         assertSame(cachedUrl, result);
         verify(urlRepository, never()).findByHash(any());
         verify(urlCacheRepository, never()).save(anyString(), any(), anyLong());
-        verify(analyticsService).recordClickAsync(cachedUrl, request);
     }
 
     @Test
-    void getOriginalUrl_shouldLoadFromRepoIfCacheMiss() {
+    void resolve_shouldLoadFromRepoIfCacheMiss() {
         String hash = "abc123";
         Url repoUrl = new Url();
-        HttpServletRequest request = mock(HttpServletRequest.class);
 
         when(urlCacheRepository.get(hash)).thenReturn(null);
         when(urlRepository.findByHash(hash)).thenReturn(Optional.of(repoUrl));
 
-        Url result = urlService.getOriginalUrl(hash, request);
+        Url result = urlService.resolve(hash);
 
         assertSame(repoUrl, result);
         verify(urlCacheRepository).save(hash, repoUrl, 30L);
-        verify(analyticsService).recordClickAsync(repoUrl, request);
     }
 
     @Test
-    void getOriginalUrl_shouldThrowIfNotFound() {
+    void resolve_shouldThrowIfNotFound() {
         String hash = "abc123";
-        HttpServletRequest request = mock(HttpServletRequest.class);
 
         when(urlCacheRepository.get(hash)).thenReturn(null);
         when(urlRepository.findByHash(hash)).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class,
-                () -> urlService.getOriginalUrl(hash, request));
+                () -> urlService.resolve(hash));
     }
 }

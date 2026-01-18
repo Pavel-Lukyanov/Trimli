@@ -7,8 +7,6 @@ import urlshortenerservice.mapper.UrlMapper;
 import urlshortenerservice.model.Url;
 import urlshortenerservice.repository.UrlCacheRepository;
 import urlshortenerservice.repository.UrlRepository;
-import urlshortenerservice.service.analytic.AnalyticService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -28,7 +26,6 @@ public class UrlServiceImpl implements UrlService {
     private final UrlMapper urlMapper;
     private final UrlRepository urlRepository;
     private final UrlCacheRepository urlCacheRepository;
-    private final AnalyticService analyticsService;
 
     @Override
     @Transactional
@@ -45,7 +42,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public Url getOriginalUrl(String hash, HttpServletRequest request) {
+    public Url resolve(String hash) {
         Url url = urlCacheRepository.get(hash);
 
         if (url == null) {
@@ -53,8 +50,6 @@ public class UrlServiceImpl implements UrlService {
                     .orElseThrow(() -> new EntityNotFoundException("URL not found"));
             urlCacheRepository.save(hash, url, ttlDays);
         }
-
-        analyticsService.recordClickAsync(url, request);
         return url;
     }
 }

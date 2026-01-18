@@ -4,16 +4,20 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
       - "443:443"
     depends_on:
       - app
+    networks:
+      - shortness_network
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
 
   postgres:
     image: postgres:17
+    container_name: shortness-postgres
     ports:
-      - "5432:5432"
-    container_name: shortness_postgres
+      - "${POSTGRES_PORT_MAPPING}"
     networks:
       - shortness_network
     environment:
@@ -26,9 +30,9 @@ services:
 
   redis:
     image: redis:8.4.0
+    container_name: shortness-redis
     ports:
-      - "6379:6379"
-    container_name: shortness_redis
+      - "${REDIS_PORT_MAPPING}"
     networks:
       - shortness_network
     environment:
@@ -42,16 +46,17 @@ services:
     build:
       context: ../
       dockerfile: Dockerfile
-    container_name: shortness_app
+    container_name: shortness-app
     networks:
       - shortness_network
     ports:
-      - "8080:8080"
+      - "${APP_PORT_MAPPING}"
     environment:
+      - APP_HOST=${APP_HOST}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
-      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_HOST=${REDIS_HOST}
       - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       - postgres
@@ -65,8 +70,6 @@ services:
       - shortness_network
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
     restart: unless-stopped
 
   grafana:
@@ -75,7 +78,7 @@ services:
     networks:
       - shortness_network
     ports:
-      - "3000:3000"
+      - "${GRAFANA_ACCESS_IP}:${GRAFANA_ACCESS_PORT}:${GRAFANA_CONTAINER_PORT}"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     volumes:
@@ -84,9 +87,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: node_exporter
-    ports:
-      - "9100:9100"
+    container_name: node-exporter
     networks:
       - shortness_network
     restart: unless-stopped
@@ -98,4 +99,4 @@ volumes:
 
 networks:
   shortness_network:
-    driver: bridge
+    external: true

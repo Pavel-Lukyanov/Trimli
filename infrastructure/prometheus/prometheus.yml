@@ -6,6 +6,9 @@ scrape_configs:
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: ['app:8080']
+    basic_auth:
+      username: ${PROMETHEUS_NAME}
+      password: ${PROMETHEUS_PASSWORD}
 
   - job_name: 'node-exporter'
     static_configs:
