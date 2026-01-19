@@ -67,7 +67,7 @@ class HashGeneratorTest {
 
         hashGenerator.generateHash();
 
-        ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass((Class) List.class);
         verify(repository, times(1)).batchInsertHashes(captor.capture());
 
         List<String> insertedHashes = captor.getValue();
