@@ -30,6 +30,8 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Transactional
     public String createShortUrl(UrlRequestDto dto) {
+        validateLink(dto);
+
         Url url = urlMapper.toModel(dto);
         String hash = localCache.getHash();
 
@@ -51,5 +53,23 @@ public class UrlServiceImpl implements UrlService {
             urlCacheRepository.save(hash, url, ttlDays);
         }
         return url;
+    }
+
+    private void validateLink(UrlRequestDto dto) {
+        String originalUrl = dto.originalUrl();
+
+        if (originalUrl == null || originalUrl.isBlank()) {
+            throw new IllegalArgumentException("Введите ссылку");
+        }
+
+        originalUrl = originalUrl.trim();
+
+        String regex = "^(https?://)" +
+                "(([\\p{L}0-9-]+\\.)+[\\p{L}]{2,})" +
+                "(:\\d+)?(/.*)?$";
+
+        if (!originalUrl.matches(regex)) {
+            throw new IllegalArgumentException("Введите ссылку");
+        }
     }
 }

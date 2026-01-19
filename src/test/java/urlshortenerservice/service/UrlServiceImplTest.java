@@ -7,7 +7,6 @@ import urlshortenerservice.mapper.UrlMapper;
 import urlshortenerservice.model.Url;
 import urlshortenerservice.repository.UrlCacheRepository;
 import urlshortenerservice.repository.UrlRepository;
-import urlshortenerservice.service.analytic.AnalyticService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,17 +21,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class UrlServiceImplTest {
-
     @Mock
     private LocalCache localCache;
     @Mock
@@ -41,8 +39,6 @@ class UrlServiceImplTest {
     private UrlRepository urlRepository;
     @Mock
     private UrlCacheRepository urlCacheRepository;
-    @Mock
-    private AnalyticService analyticsService;
     @InjectMocks
     private UrlServiceImpl urlService;
 
@@ -106,5 +102,46 @@ class UrlServiceImplTest {
 
         assertThrows(EntityNotFoundException.class,
                 () -> urlService.resolve(hash));
+    }
+
+    @Test
+    void createShortUrl_shouldThrowOnInvalidUrls() {
+        String[] invalidUrls = {
+                null,
+                "",
+                "   ",
+                "ftp://example.com",
+                "docs",
+                "http://localhost",
+                "http://127.0.0.1",
+                "http://домен" // нет точки
+        };
+
+        for (String url : invalidUrls) {
+            UrlRequestDto dto = new UrlRequestDto(url);
+            IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                    () -> urlService.createShortUrl(dto));
+            assertEquals("Введите ссылку", ex.getMessage());
+        }
+    }
+
+    @Test
+    void createShortUrl_shouldAcceptValidUrls() {
+        String[] validUrls = {
+                "http://example.com",
+                "https://example.com",
+                "http://sub.домен.ru/path",
+                "https://my-site.com:8080/test"
+        };
+
+        for (String url : validUrls) {
+            UrlRequestDto dto = new UrlRequestDto(url);
+
+            Url mappedUrl = new Url();
+            when(urlMapper.toModel(dto)).thenReturn(mappedUrl);
+            when(localCache.getHash()).thenReturn("abc123");
+
+            assertDoesNotThrow(() -> urlService.createShortUrl(dto));
+        }
     }
 }
